@@ -27,7 +27,6 @@ import (
 )
 
 var _ = Describe("Volume Mutator", func() {
-
 	var (
 		manager          *cfakes.FakeManager
 		client           *cfakes.FakeClient
@@ -57,9 +56,7 @@ var _ = Describe("Volume Mutator", func() {
 		request = types.Request{AdmissionRequest: &admissionv1beta1.AdmissionRequest{}}
 	})
 
-	// source_type: APP
 	Describe("Handle", func() {
-
 		It("passes on errors from the decoding step", func() {
 			f := generateGetPodFunc(nil, fmt.Errorf("decode failed"))
 			mutator := webhooks.NewVolumeMutator(log, config, manager, setReferenceFunc, f)
@@ -75,7 +72,7 @@ var _ = Describe("Volume Mutator", func() {
 			mutator := webhooks.NewVolumeMutator(log, config, manager, setReferenceFunc, f)
 
 			resp := mutator.Handle(ctx, request)
-			Expect(resp).ToNot(BeNil())
+			Expect(len(resp.Patches)).To(Equal(0))
 		})
 	})
 })

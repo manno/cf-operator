@@ -26,6 +26,8 @@ import (
 	"code.cloudfoundry.org/cf-operator/pkg/kube/controllers/extendedstatefulset"
 	"code.cloudfoundry.org/cf-operator/pkg/kube/util/config"
 	"code.cloudfoundry.org/cf-operator/pkg/kube/util/ctxlog"
+
+	eirini_webhooks "code.cloudfoundry.org/cf-operator/pkg/kube/webhooks/eirini"
 )
 
 var addToManagerFuncs = []func(context.Context, *config.Config, manager.Manager) error{
@@ -47,6 +49,7 @@ var addToSchemes = runtime.SchemeBuilder{
 
 var addHookFuncs = []func(*zap.SugaredLogger, *config.Config, manager.Manager, *webhook.Server) (*admission.Webhook, error){
 	extendedstatefulset.AddPod,
+	eirini_webhooks.Volume,
 }
 
 // AddToManager adds all Controllers to the Manager
@@ -72,12 +75,12 @@ func AddHooks(ctx context.Context, config *config.Config, m manager.Manager, gen
 
 	disableConfigInstaller := true
 	hookServer, err := webhook.NewServer("cf-operator", m, webhook.ServerOptions{
-		Port:                          config.WebhookServerPort,
-		CertDir:                       webhookConfig.CertDir,
+		Port:    config.WebhookServerPort,
+		CertDir: webhookConfig.CertDir,
 		DisableWebhookConfigInstaller: &disableConfigInstaller,
 		BootstrapOptions: &webhook.BootstrapOptions{
 			MutatingWebhookConfigName: webhookConfig.ConfigName,
-			Host:                      &config.WebhookServerHost,
+			Host: &config.WebhookServerHost,
 			// The user should probably be able to use a service instead.
 			// Service: ??
 		},

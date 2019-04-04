@@ -2,6 +2,8 @@ package eirini
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 
 	"code.cloudfoundry.org/cf-operator/pkg/kube/util/config"
 	"go.uber.org/zap"
@@ -24,13 +26,14 @@ type VolumeMutator struct {
 	log          *zap.SugaredLogger
 	config       *config.Config
 	decoder      types.Decoder
+	getPodFunc   GetPodFuncType
 }
 
 // Implement admission.Handler so the controller can handle admission request.
 var _ admission.Handler = &VolumeMutator{}
 
 // NewPodMutator returns a new reconcile.Reconciler
-func NewVolumeMutator(log *zap.SugaredLogger, config *config.Config, mgr manager.Manager, srf setReferenceFunc) admission.Handler {
+func NewVolumeMutator(log *zap.SugaredLogger, config *config.Config, mgr manager.Manager, srf setReferenceFunc, getPodFunc GetPodFuncType) admission.Handler {
 	mutatorLog := log.Named("eirini-volume-mutator")
 	mutatorLog.Info("Creating a Volume mutator")
 
@@ -40,11 +43,18 @@ func NewVolumeMutator(log *zap.SugaredLogger, config *config.Config, mgr manager
 		client:       mgr.GetClient(),
 		scheme:       mgr.GetScheme(),
 		setReference: srf,
+		getPodFunc:   getPodFunc,
 	}
 }
 
 // Handle manages volume claims for ExtendedStatefulSet pods
 func (m *VolumeMutator) Handle(ctx context.Context, req types.Request) types.Response {
+
+	pod, err := m.getPodFunc(m.decoder, req)
+	if err != nil {
+		return admission.ErrorResponse(http.StatusBadRequest, err)
+	}
+	fmt.Println(pod)
 
 	return types.Response{}
 }

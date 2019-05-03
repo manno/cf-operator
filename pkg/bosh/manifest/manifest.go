@@ -92,11 +92,10 @@ func (j *Job) loadSpec(baseDir string) (*JobSpec, error) {
 // BOSHContainerization represents the special 'bosh_containerization'
 // property key
 type BOSHContainerization struct {
-	Consumes  map[string]JobLink `yaml:"consumes"`
-	Instances []JobInstance      `yaml:"instances"`
-	Release   string             `yaml:"release"`
-	BPM       bpm.Config         `yaml:"bpm"`
-	Ports     []Port             `yaml:"ports"`
+	Consumes map[string]JobLink `yaml:"consumes"`
+	Release  string             `yaml:"release"`
+	BPM      bpm.Config         `yaml:"bpm"`
+	Ports    []Port             `yaml:"ports"`
 }
 
 // Port represents the port to be opened up for this job

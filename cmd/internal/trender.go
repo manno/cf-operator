@@ -31,6 +31,11 @@ This will render a provided manifest instance-group
 			return fmt.Errorf("instance-group-name cannot be empty")
 		}
 
+		namespace := viper.GetString("cf-operator-namespace")
+		if len(namespace) == 0 {
+			return fmt.Errorf("namespace cannot be empty")
+		}
+
 		specIndex := viper.GetInt("spec-index")
 		if specIndex < 0 {
 			// calculate index following the formula specified in
@@ -61,7 +66,7 @@ This will render a provided manifest instance-group
 			specIndex = (azIndex-1)*replicas + podOrdinal
 		}
 
-		return manifest.RenderJobTemplates(boshManifestPath, jobsDir, outputDir, instanceGroupName, specIndex)
+		return manifest.RenderJobTemplates(namespace, boshManifestPath, jobsDir, outputDir, instanceGroupName, specIndex)
 	},
 }
 

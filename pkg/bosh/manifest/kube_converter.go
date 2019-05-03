@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 	"k8s.io/api/apps/v1beta2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -932,9 +932,6 @@ func (m *Manifest) ApplyBPMInfo(kubeConfig *KubeConfig, allResolvedProperties ma
 		// TODO: handle multi-process BPM?
 		// TODO: complete implementation - BPM information could be top-level only
 
-		if len(boshJob.Properties.BOSHContainerization.Instances) < 1 {
-			return errors.New("containerization data has no instances")
-		}
 		if len(boshJob.Properties.BOSHContainerization.BPM.Processes) < 1 {
 			return errors.New("bpm info has no processes")
 		}

@@ -13,7 +13,7 @@ import (
 
 // RenderJobTemplates will render templates for all jobs of the instance group
 // https://bosh.io/docs/create-release/#job-specs
-func RenderJobTemplates(boshManifestPath string, jobsDir string, jobsOutputDir string, instanceGroupName string, specIndex int) error {
+func RenderJobTemplates(namespace string, boshManifestPath string, jobsDir string, jobsOutputDir string, instanceGroupName string, specIndex int) error {
 
 	// Loading deployment manifest file
 	resolvedYML, err := ioutil.ReadFile(boshManifestPath)
@@ -44,7 +44,7 @@ func RenderJobTemplates(boshManifestPath string, jobsDir string, jobsOutputDir s
 
 			// Find job instance that's being rendered
 			var currentJobInstance *JobInstance
-			for _, instance := range job.Properties.BOSHContainerization.Instances {
+			for _, instance := range instanceGroup.jobInstances(namespace, boshManifest.Name, job.Name, *jobSpec) {
 				if instance.Index == specIndex {
 					currentJobInstance = &instance
 					break
@@ -60,6 +60,7 @@ func RenderJobTemplates(boshManifestPath string, jobsDir string, jobsOutputDir s
 				jobInstances := []JobInstance{}
 
 				// Loop over instances of link
+				// TODO calculate Instances from first one
 				for _, jobConsumerLinkInstance := range jobConsumersLink.Instances {
 					jobInstances = append(jobInstances, JobInstance{
 						Address: jobConsumerLinkInstance.Address,

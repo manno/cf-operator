@@ -31,7 +31,7 @@ func (jpl JobProviderLinks) Lookup(consumesType string, consumesName string) (Jo
 	return link, ok
 }
 
-func (jpl JobProviderLinks) Add(job Job, spec JobSpec, jobsInstances []JobInstance) error {
+func (jpl JobProviderLinks) Add(job Job, spec JobSpec, jobInstance JobInstance) error {
 	var properties map[string]interface{}
 
 	for _, provider := range spec.Provides {
@@ -86,7 +86,7 @@ func (jpl JobProviderLinks) Add(job Job, spec JobSpec, jobsInstances []JobInstan
 		// construct the jobProviderLinks of the current job that provides
 		// a link
 		jpl[providerType][providerName] = JobLink{
-			Instances:  jobsInstances,
+			Instances:  []JobInstance{jobInstance},
 			Properties: properties,
 		}
 	}
@@ -129,7 +129,7 @@ func (dg *DataGatherer) CollectReleaseSpecsAndProviderLinks(baseDir string) (map
 	jobProviderLinks := JobProviderLinks{}
 
 	for _, instanceGroup := range dg.manifest.InstanceGroups {
-		for jobIdx, job := range instanceGroup.Jobs {
+		for _, job := range instanceGroup.Jobs {
 			// make sure a map entry exists for the current job release
 			if _, ok := jobReleaseSpecs[job.Release]; !ok {
 				jobReleaseSpecs[job.Release] = map[string]JobSpec{}
@@ -147,18 +147,11 @@ func (dg *DataGatherer) CollectReleaseSpecsAndProviderLinks(baseDir string) (map
 			// spec of the current jobs release/name
 			spec := jobReleaseSpecs[job.Release][job.Name]
 
-			// Generate instance spec for each ig instance
-			// This will be stored inside the current job under
-			// job.properties.bosh_containerization
-			jobsInstances := instanceGroup.jobInstances(dg.namespace, dg.manifest.Name, job.Name, spec)
-
-			// set jobs.properties.bosh_containerization.instances with the ig instances
-			instanceGroup.Jobs[jobIdx].Properties.BOSHContainerization.Instances = jobsInstances
-
 			// Create a list of fully evaluated links provided by the current job
 			// These is specified in the job release job.MF file
 			if spec.Provides != nil {
-				err := jobProviderLinks.Add(job, spec, jobsInstances)
+				jobsInstances := instanceGroup.jobInstances(dg.namespace, dg.manifest.Name, job.Name, spec)
+				err := jobProviderLinks.Add(job, spec, jobsInstances[0])
 				if err != nil {
 					return nil, nil, err
 				}
@@ -201,7 +194,12 @@ func (dg *DataGatherer) ProcessConsumersAndRenderBPM(baseDir string, jobReleaseS
 			return nil, err
 		}
 
-		err = dg.renderJobBPM(currentJob, baseDir)
+		// Get current job instances, which will be required by the renderer to generate
+		// the render.InstanceInfo struct
+		spec := jobReleaseSpecs[job.Release][job.Name]
+		ji := desiredInstanceGroup.jobInstances(dg.namespace, dg.manifest.Name, job.Name, spec)
+
+		err = dg.renderJobBPM(currentJob, baseDir, ji)
 		if err != nil {
 			return nil, err
 		}
@@ -217,7 +215,7 @@ func (dg *DataGatherer) ProcessConsumersAndRenderBPM(baseDir string, jobReleaseS
 }
 
 // renderJobBPM per job and add its value to the jobInstances.BPM field
-func (dg *DataGatherer) renderJobBPM(currentJob *Job, baseDir string) error {
+func (dg *DataGatherer) renderJobBPM(currentJob *Job, baseDir string, jobInstances []JobInstance) error {
 	// Location of the current job job.MF file
 	jobSpecFile := filepath.Join(baseDir, "jobs-src", currentJob.Release, currentJob.Name, "job.MF")
 
@@ -248,16 +246,12 @@ func (dg *DataGatherer) renderJobBPM(currentJob *Job, baseDir string) error {
 		return fmt.Errorf("can't find BPM template for job %s", currentJob.Name)
 	}
 
-	// ### Render bpm.yml.erb for each job instance
-
+	// Render bpm.yml.erb for each job instance
 	erbFilePath := filepath.Join(baseDir, "jobs-src", currentJob.Release, currentJob.Name, "templates", bpmSource)
 	if _, err := os.Stat(erbFilePath); err != nil {
 		return err
 	}
 
-	// Get current job.bosh_containerization.instances, which will be required by the renderer to generate
-	// the render.InstanceInfo struct
-	jobInstances := currentJob.Properties.BOSHContainerization.Instances
 	if jobInstances == nil {
 		return nil
 	}
@@ -357,7 +351,7 @@ func generateJobConsumersData(currentJob *Job, jobReleaseSpecs map[string]map[st
 		}
 
 		currentJob.Properties.BOSHContainerization.Consumes[consumesName] = JobLink{
-			Instances:  link.Instances,
+			Instances:  link.Instances[:1],
 			Properties: link.Properties,
 		}
 	}

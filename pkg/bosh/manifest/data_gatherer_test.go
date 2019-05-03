@@ -117,29 +117,8 @@ var _ = Describe("DataGatherer", func() {
 				_, _, err := dg.CollectReleaseSpecsAndProviderLinks(assetPath)
 				Expect(err).ToNot(HaveOccurred())
 
-				//Check JobInstance for the redis-server job
-				jobInstancesRedis := m.InstanceGroups[0].Jobs[0].Properties.BOSHContainerization.Instances
-
-				compareToFakeRedis := []JobInstance{
-					{Address: "foo-deployment-redis-slave-0.default.svc.cluster.local", AZ: "z1", ID: "redis-slave-0-redis-server", Index: 0, Instance: 0, Name: "redis-slave-redis-server"},
-					{Address: "foo-deployment-redis-slave-1.default.svc.cluster.local", AZ: "z2", ID: "redis-slave-1-redis-server", Index: 1, Instance: 0, Name: "redis-slave-redis-server"},
-					{Address: "foo-deployment-redis-slave-2.default.svc.cluster.local", AZ: "z1", ID: "redis-slave-2-redis-server", Index: 2, Instance: 1, Name: "redis-slave-redis-server"},
-					{Address: "foo-deployment-redis-slave-3.default.svc.cluster.local", AZ: "z2", ID: "redis-slave-3-redis-server", Index: 3, Instance: 1, Name: "redis-slave-redis-server"},
-				}
-				Expect(jobInstancesRedis).To(BeEquivalentTo(compareToFakeRedis))
-
 				_, _, err = dg.CollectReleaseSpecsAndProviderLinks(assetPath)
 				Expect(err).ToNot(HaveOccurred())
-				//Check JobInstance for the cflinuxfs3-rootfs-setup job
-				jobInstancesCell := m.InstanceGroups[1].Jobs[0].Properties.BOSHContainerization.Instances
-
-				compareToFakeCell := []JobInstance{
-					{Address: "foo-deployment-diego-cell-0.default.svc.cluster.local", AZ: "z1", ID: "diego-cell-0-cflinuxfs3-rootfs-setup", Index: 0, Instance: 0, Name: "diego-cell-cflinuxfs3-rootfs-setup"},
-					{Address: "foo-deployment-diego-cell-1.default.svc.cluster.local", AZ: "z2", ID: "diego-cell-1-cflinuxfs3-rootfs-setup", Index: 1, Instance: 0, Name: "diego-cell-cflinuxfs3-rootfs-setup"},
-					{Address: "foo-deployment-diego-cell-2.default.svc.cluster.local", AZ: "z1", ID: "diego-cell-2-cflinuxfs3-rootfs-setup", Index: 2, Instance: 1, Name: "diego-cell-cflinuxfs3-rootfs-setup"},
-					{Address: "foo-deployment-diego-cell-3.default.svc.cluster.local", AZ: "z2", ID: "diego-cell-3-cflinuxfs3-rootfs-setup", Index: 3, Instance: 1, Name: "diego-cell-cflinuxfs3-rootfs-setup"},
-				}
-				Expect(jobInstancesCell).To(BeEquivalentTo(compareToFakeCell))
 			})
 
 			It("should get all links from providers", func() {
@@ -148,9 +127,6 @@ var _ = Describe("DataGatherer", func() {
 				Expect(len(providerLinks)).To(BeEquivalentTo(1))
 				expectedInstances := []JobInstance{
 					{Address: "foo-deployment-redis-slave-0.default.svc.cluster.local", AZ: "z1", ID: "redis-slave-0-redis-server", Index: 0, Instance: 0, Name: "redis-slave-redis-server"},
-					{Address: "foo-deployment-redis-slave-1.default.svc.cluster.local", AZ: "z2", ID: "redis-slave-1-redis-server", Index: 1, Instance: 0, Name: "redis-slave-redis-server"},
-					{Address: "foo-deployment-redis-slave-2.default.svc.cluster.local", AZ: "z1", ID: "redis-slave-2-redis-server", Index: 2, Instance: 1, Name: "redis-slave-redis-server"},
-					{Address: "foo-deployment-redis-slave-3.default.svc.cluster.local", AZ: "z2", ID: "redis-slave-3-redis-server", Index: 3, Instance: 1, Name: "redis-slave-redis-server"},
 				}
 				expectedProperties := map[string]interface{}{
 					"port":     6379,
@@ -222,9 +198,6 @@ var _ = Describe("DataGatherer", func() {
 				Expect(err).ToNot(HaveOccurred())
 				_, err = dg.ProcessConsumersAndRenderBPM(assetPath, releaseSpecs, links, "log-api")
 				Expect(err).ToNot(HaveOccurred())
-
-				jobBoshContainerizationPropertiesInstances := m.InstanceGroups[1].Jobs[0].Properties.BOSHContainerization.Instances
-				Expect(len(jobBoshContainerizationPropertiesInstances)).To(Equal(4))
 
 				// in ERB files, there are test environment variables like these:
 				//   FOOBARWITHLINKVALUES: <%= link('doppler').p("fooprop") %>

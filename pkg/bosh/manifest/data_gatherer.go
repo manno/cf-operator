@@ -151,6 +151,7 @@ func (dg *DataGatherer) CollectReleaseSpecsAndProviderLinks(baseDir string) (map
 			// These is specified in the job release job.MF file
 			if spec.Provides != nil {
 				jobsInstances := instanceGroup.jobInstances(dg.namespace, dg.manifest.Name, job.Name, spec)
+				// TODO need to store number if instances
 				err := jobProviderLinks.Add(job, spec, jobsInstances[0])
 				if err != nil {
 					return nil, nil, err
@@ -350,8 +351,13 @@ func generateJobConsumersData(currentJob *Job, jobReleaseSpecs map[string]map[st
 			currentJob.Properties.BOSHContainerization.Consumes = map[string]JobLink{}
 		}
 
+		var linkInstances []JobInstance
+		if len(link.Instances) > 0 {
+			linkInstances = link.Instances[:1]
+		}
+
 		currentJob.Properties.BOSHContainerization.Consumes[consumesName] = JobLink{
-			Instances:  link.Instances[:1],
+			Instances:  linkInstances,
 			Properties: link.Properties,
 		}
 	}

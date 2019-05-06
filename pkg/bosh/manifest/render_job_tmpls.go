@@ -13,6 +13,7 @@ import (
 
 // RenderJobTemplates will render templates for all jobs of the instance group
 // https://bosh.io/docs/create-release/#job-specs
+// TODO is this really a full boshManifestPath
 func RenderJobTemplates(namespace string, boshManifestPath string, jobsDir string, jobsOutputDir string, instanceGroupName string, specIndex int) error {
 
 	// Loading deployment manifest file
@@ -55,20 +56,24 @@ func RenderJobTemplates(namespace string, boshManifestPath string, jobsDir strin
 			}
 
 			// Loop over name and link
+			// TODO only once per job instance?
 			jobInstanceLinks := []Link{}
 			for name, jobConsumersLink := range job.Properties.BOSHContainerization.Consumes {
 				jobInstances := []JobInstance{}
 
 				// Loop over instances of link
-				// TODO calculate Instances from first one
-				for _, jobConsumerLinkInstance := range jobConsumersLink.Instances {
-					jobInstances = append(jobInstances, JobInstance{
-						Address: jobConsumerLinkInstance.Address,
-						AZ:      jobConsumerLinkInstance.AZ,
-						ID:      jobConsumerLinkInstance.ID,
-						Index:   jobConsumerLinkInstance.Index,
-						Name:    jobConsumerLinkInstance.Name,
-					})
+				// TODO calculate Instances from jobProviderLink info
+				if len(jobConsumersLink.Instances) > 0 {
+					jobConsumerLinkInstance := jobConsumersLink.Instances[0]
+					for _, jobConsumerLinkInstance := range jobConsumersLink.Instances {
+						jobInstances = append(jobInstances, JobInstance{
+							Address: jobConsumerLinkInstance.Address,
+							AZ:      jobConsumerLinkInstance.AZ,
+							ID:      jobConsumerLinkInstance.ID,
+							Index:   jobConsumerLinkInstance.Index,
+							Name:    jobConsumerLinkInstance.Name,
+						})
+					}
 				}
 
 				jobInstanceLinks = append(jobInstanceLinks, Link{
@@ -88,6 +93,8 @@ func RenderJobTemplates(namespace string, boshManifestPath string, jobsDir strin
 
 				renderPointer := btg.NewERBRenderer(
 					&btg.EvaluationContext{
+						// TODO missing from btg, but calculated here
+						// Instances:  jobInstanceLinks,
 						Properties: properties,
 					},
 

@@ -55,8 +55,8 @@ type Owner interface {
 	ListConfigsOwnedBy(context.Context, apis.Object) ([]apis.Object, error)
 }
 
-// NewReconciler returns a new reconcile.Reconciler
-func NewReconciler(ctx context.Context, config *config.Config, mgr manager.Manager, resolver bdm.Resolver, srf setReferenceFunc) reconcile.Reconciler {
+// NewDeploymentReconciler returns a new reconcile.Reconciler
+func NewDeploymentReconciler(ctx context.Context, config *config.Config, mgr manager.Manager, resolver bdm.Resolver, srf setReferenceFunc) reconcile.Reconciler {
 	versionedSecretStore := versionedsecretstore.NewVersionedSecretStore(mgr.GetClient())
 
 	return &ReconcileBOSHDeployment{
@@ -202,7 +202,7 @@ func (r *ReconcileBOSHDeployment) Reconcile(request reconcile.Request) (reconcil
 		}
 
 	case VariableInterpolatedState:
-		err = r.createDataGatheringJob(ctx, instance, manifest, *kubeConfigs)
+		err = r.createDataGatheringJob(ctx, instance, *kubeConfigs)
 		if err != nil {
 			err = log.WithEvent(instance, "DataGatheringError").Errorf(ctx, "Failed to create data gathering eJob: %v", err)
 			return reconcile.Result{}, err
@@ -519,7 +519,7 @@ func (r *ReconcileBOSHDeployment) createVariableInterpolationEJob(ctx context.Co
 }
 
 // createDataGatheringJob gather data from manifest
-func (r *ReconcileBOSHDeployment) createDataGatheringJob(ctx context.Context, instance *bdv1.BOSHDeployment, manifest *bdm.Manifest, kubeConfig bdm.KubeConfig) error {
+func (r *ReconcileBOSHDeployment) createDataGatheringJob(ctx context.Context, instance *bdv1.BOSHDeployment, kubeConfig bdm.KubeConfig) error {
 
 	// Generate the ExtendedJob object
 	dataGatheringEJob := kubeConfig.DataGatheringJob

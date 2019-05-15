@@ -265,7 +265,7 @@ func (r *ReconcileExtendedSecret) canBeGenerated(ctx context.Context, instance *
 		secretLabels = map[string]string{}
 	}
 
-	if secretLabels[esv1.LabelKind] != "generated" {
+	if secretLabels[esv1.LabelKind] != esv1.GeneratedSecretKind {
 		return false, nil
 	}
 
@@ -279,7 +279,7 @@ func (r *ReconcileExtendedSecret) createSecret(ctx context.Context, instance *es
 		secretLabels = map[string]string{}
 	}
 
-	secretLabels[esv1.LabelKind] = "generated"
+	secretLabels[esv1.LabelKind] = esv1.GeneratedSecretKind
 
 	secret.SetLabels(secretLabels)
 

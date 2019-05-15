@@ -189,10 +189,13 @@ func (r *ReconcileBOSHDeployment) Reconcile(request reconcile.Request) (reconcil
 			instance.Annotations = map[string]string{}
 		}
 		instance.Annotations[bdv1.AnnotationManifestSHA1] = currentManifestSHA1
-		instance.Status.State = OpsAppliedState
 
-	case OpsAppliedState:
-		fallthrough
+		err = r.createManifestWithOps(ctx, instance, manifest)
+		if err != nil {
+			err = log.WithEvent(instance, "VariableInterpolationError").Errorf(ctx, "Failed to create manifest with ops: %v", err)
+			return reconcile.Result{}, err
+		}
+
 	case VariableGeneratedState:
 		err = r.createVariableInterpolationEJob(ctx, instance, manifest, *kubeConfigs)
 		if err != nil {
@@ -207,13 +210,14 @@ func (r *ReconcileBOSHDeployment) Reconcile(request reconcile.Request) (reconcil
 			return reconcile.Result{}, err
 		}
 
+	case DeployingState:
+		// TODO How to determine deployed state
 	default:
-		// TODO should sum up instance status
-		return reconcile.Result{}, nil
+		log.Debugf(ctx, "Requeue the reconcile: BoshDeployment '%s/%s' is in state '%s' not in [%s, %s]", instance.GetNamespace(), instance.GetName(), instance.Status.State, VariableGeneratedState, VariableInterpolatedState)
+		return reconcile.Result{Requeue: true}, nil
 	}
 
-	log.Debugf(ctx, "Requeue the reconcile: BoshDeployment '%s/%s' is in state '%s'", instance.GetNamespace(), instance.GetName(), instance.Status.State)
-	return reconcile.Result{Requeue: true}, r.updateInstanceState(ctx, instance)
+	return reconcile.Result{}, r.updateInstanceState(ctx, instance)
 }
 
 // updateInstanceState update instance state
@@ -426,11 +430,10 @@ func (r *ReconcileBOSHDeployment) handleDeletion(ctx context.Context, instance *
 	return reconcile.Result{}, nil
 }
 
-// createVariableInterpolationEJob create temp manifest and variable interpolation eJob
-func (r *ReconcileBOSHDeployment) createVariableInterpolationEJob(ctx context.Context, instance *bdv1.BOSHDeployment, manifest *bdm.Manifest, kubeConfig bdm.KubeConfig) error {
-
-	// Create temp manifest as variable interpolation job input.
-	// Ops files have been applied on this manifest.
+// createManifestWithOps create secret containing manifest with ops
+func (r *ReconcileBOSHDeployment) createManifestWithOps(ctx context.Context, instance *bdv1.BOSHDeployment, manifest *bdm.Manifest) error {
+	log.Debug(ctx, "Creating manifest secret with ops")
+	// Create manifest with ops as variable interpolation job input.
 	tempManifestBytes, err := yaml.Marshal(manifest)
 	if err != nil {
 		return errors.Wrap(err, "could not marshal temp manifest")
@@ -460,6 +463,13 @@ func (r *ReconcileBOSHDeployment) createVariableInterpolationEJob(ctx context.Co
 		return errors.Wrapf(err, "creating or updating Secret '%s'", tempManifestSecret.Name)
 	}
 
+	instance.Status.State = OpsAppliedState
+
+	return nil
+}
+
+// createVariableInterpolationEJob create temp manifest and variable interpolation eJob
+func (r *ReconcileBOSHDeployment) createVariableInterpolationEJob(ctx context.Context, instance *bdv1.BOSHDeployment, manifest *bdm.Manifest, kubeConfig bdm.KubeConfig) error {
 	// Generate the ExtendedJob object
 	log.Debug(ctx, "Creating variable interpolation extendedJob")
 	varIntEJob := kubeConfig.VariableInterpolationJob
@@ -469,7 +479,7 @@ func (r *ReconcileBOSHDeployment) createVariableInterpolationEJob(ctx context.Co
 		return err
 	}
 
-	_, err = controllerutil.CreateOrUpdate(ctx, r.client, varIntEJob.DeepCopy(), func(obj runtime.Object) error {
+	_, err := controllerutil.CreateOrUpdate(ctx, r.client, varIntEJob.DeepCopy(), func(obj runtime.Object) error {
 		exstEJob, ok := obj.(*ejv1.ExtendedJob)
 		if !ok {
 			return fmt.Errorf("object is not an ExtendedJob")

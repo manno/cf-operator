@@ -110,7 +110,8 @@ type Output struct {
 
 // ExtendedJobStatus defines the observed state of ExtendedJob
 type ExtendedJobStatus struct {
-	Nodes []string `json:"nodes"`
+	// Specifies whether the Job has reached phase Succeeded
+	Succeeded bool `json:"succeeded"`
 }
 
 // +genclient

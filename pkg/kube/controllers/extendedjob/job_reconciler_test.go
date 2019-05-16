@@ -75,6 +75,13 @@ var _ = Describe("ReconcileExtendedJob", func() {
 			}
 			return nil
 		})
+		client.UpdateCalls(func(_ context.Context, object runtime.Object) error {
+			switch object.(type) {
+			case *ejapi.ExtendedJob:
+				object.(*ejapi.ExtendedJob).DeepCopyInto(ejob)
+			}
+			return nil
+		})
 		manager.GetClientReturns(client)
 		podLogGetter = &cfakes.FakePodLogGetter{}
 		podLogGetter.GetReturns([]byte(`{"foo": "bar"}`), nil)
@@ -92,6 +99,12 @@ var _ = Describe("ReconcileExtendedJob", func() {
 			_, err := reconciler.Reconcile(request)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(client.DeleteCallCount()).To(Equal(1))
+		})
+
+		It("updates the EJob status", func() {
+			_, err := reconciler.Reconcile(request)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ejob.Status.Succeeded).To(BeTrue())
 		})
 
 		Context("when output persistence is not configured", func() {

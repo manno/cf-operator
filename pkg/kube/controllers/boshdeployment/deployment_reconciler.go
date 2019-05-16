@@ -548,6 +548,7 @@ func (r *ReconcileBOSHDeployment) createVariableInterpolationEJob(ctx context.Co
 
 		exstEJob.Labels = varIntEJob.Labels
 		exstEJob.Spec = varIntEJob.Spec
+		exstEJob.Status.Succeeded = false
 		return nil
 	})
 	if err != nil {
@@ -581,6 +582,7 @@ func (r *ReconcileBOSHDeployment) createDataGatheringJob(ctx context.Context, in
 
 		exstEJob.Labels = dataGatheringEJob.Labels
 		exstEJob.Spec = dataGatheringEJob.Spec
+		exstEJob.Status.Succeeded = false
 		return nil
 	})
 	if err != nil {
@@ -614,6 +616,7 @@ func (r *ReconcileBOSHDeployment) createBPMConfigsJob(ctx context.Context, insta
 
 		exstEJob.Labels = bpmConfigsJob.Labels
 		exstEJob.Spec = bpmConfigsJob.Spec
+		exstEJob.Status.Succeeded = false
 		return nil
 	})
 	if err != nil {

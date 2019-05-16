@@ -469,9 +469,7 @@ var _ = Describe("ExtendedStatefulSet", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("Should append the volumemanagement persistent volume claim when the replicas are increased twice", func() {
-
-			Skip("Skipping until CI is fixed")
+		FIt("Should append the volumemanagement persistent volume claim when the replicas are increased twice", func() {
 
 			By("Creating an ExtendedStatefulSet")
 			ess, tearDown, err := env.CreateExtendedStatefulSet(env.Namespace, extendedStatefulSet)

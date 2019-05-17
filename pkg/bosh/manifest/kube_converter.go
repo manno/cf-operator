@@ -248,7 +248,7 @@ func (kc *KubeConfig) jobsToContainers(igName string, jobs []Job, namespace stri
 		if err != nil {
 			return []corev1.Container{}, err
 		}
-		jobsToContainerPods = append(jobsToContainerPods, corev1.Container{
+		container := corev1.Container{
 			Name:  fmt.Sprintf(job.Name),
 			Image: jobImage,
 			VolumeMounts: []corev1.VolumeMount{
@@ -261,7 +261,22 @@ func (kc *KubeConfig) jobsToContainers(igName string, jobs []Job, namespace stri
 					MountPath: "/var/vcap/jobs",
 				},
 			},
-		})
+		}
+
+		if len(job.Properties.BOSHContainerization.Run.HealthChecks) > 0 {
+			for name, hc := range job.Properties.BOSHContainerization.Run.HealthChecks {
+				if name == job.Name {
+					if hc.ReadinessProbe != nil {
+						container.ReadinessProbe = hc.ReadinessProbe
+					}
+					if hc.LivenessProbe != nil {
+						container.LivenessProbe = hc.LivenessProbe
+					}
+				}
+			}
+		}
+
+		jobsToContainerPods = append(jobsToContainerPods, container)
 	}
 	return jobsToContainerPods, nil
 }

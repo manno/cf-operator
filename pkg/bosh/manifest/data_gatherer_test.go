@@ -63,7 +63,7 @@ var _ = Describe("DataGatherer", func() {
 		})
 	})
 
-	Context("DataGatherer", func() {
+	FContext("DataGatherer", func() {
 		BeforeEach(func() {
 			_, log = helper.NewTestLogger()
 		})
@@ -93,6 +93,24 @@ var _ = Describe("DataGatherer", func() {
 				Expect(bpm.Processes[0].Env["FOOBARWITHLINKINSTANCESADDRESS"]).To(Equal("cf-doppler-0.default.svc.cluster.local"))
 				Expect(bpm.Processes[0].Env["FOOBARWITHSPECADDRESS"]).To(Equal("cf-log-api-0.default.svc.cluster.local"))
 				Expect(bpm.Processes[0].Env["FOOBARWITHSPECDEPLOYMENT"]).To(Equal("cf"))
+			})
+
+
+
+			Context("when manifest presets bpm info", func() {
+				BeforeEach(func() {
+					m = env.BOSHManifestWithBPMInfo()
+					ig = "redis-slave"
+				})
+
+				FIt("returns preset bpm config ", func() {
+					bpmConfigs, err := dg.BPMConfigs()
+					Expect(err).ToNot(HaveOccurred())
+
+					bpm := bpmConfigs["redis-server"]
+					Expect(bpm).ToNot(BeNil())
+					Expect(bpm.Processes[0].Executable).To(Equal("/another/command"))
+				})
 			})
 		})
 

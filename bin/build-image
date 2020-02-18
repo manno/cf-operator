@@ -13,6 +13,10 @@ docker build "${GIT_ROOT}" \
   --build-arg GO111MODULE="${GO111MODULE:-on}" \
   --tag "${image}"
 
+if [ -n "$USE_KIND" ]; then
+	kind load docker-image "$image"
+fi
+
 if [ -n "${SAVE_TARBALL}" ] && [[ "${SAVE_TARBALL}" == "true" ]]; then
   dst_dir="${GIT_ROOT}/binaries"
   mkdir -p "${dst_dir}"

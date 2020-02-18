@@ -1,0 +1,67 @@
+language: go
+
+go:
+- '1.13.4'
+
+services:
+- docker
+
+env:
+  global:
+    - COVERAGE=true
+
+install:
+- export GOPROXY=https://proxy.golang.org
+- go install github.com/onsi/ginkgo/ginkgo
+- export PATH=$PATH:$GOPATH/bin
+
+jobs:
+  include:
+  - stage: Linting
+    before_script:
+    - curl -LO https://github.com/dominikh/go-tools/releases/download/2019.2.3/staticcheck_linux_amd64.tar.gz
+    - tar xfz staticcheck_linux_amd64.tar.gz --strip-component 1 -C $GOPATH/bin staticcheck/staticcheck
+    - go get -u golang.org/x/lint/golint
+    script:
+    - bin/lint
+    - bin/vet
+    - bin/staticcheck
+
+  - stage: Unit Tests
+    before_script:
+    - go get github.com/mattn/goveralls
+    - go get github.com/modocache/gover
+    script:
+    - bin/test-unit
+    - bin/coverage
+
+  - stage: Cluster Tests
+    before_script:
+    # Download and install kubectl
+    - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+
+    # Download and install KinD
+    - curl -Lo kind https://github.com/kubernetes-sigs/kind/releases/download/v0.6.0/kind-linux-amd64 && chmod +x kind && sudo mv kind /usr/local/bin/
+
+    # Create a new Kubernetes cluster using KinD
+    - kind create cluster
+    - kubectl version
+
+    # Set USE_KIND so build-image loads image into KinD
+    - export USE_KIND="true"
+
+    # Download and install helm
+    - curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 > get_helm.sh
+    - chmod 700 get_helm.sh
+    - sudo ./get_helm.sh
+    - go get github.com/mattn/goveralls
+    - go get github.com/modocache/gover
+    script:
+    - bin/build-image
+    - bin/test-integration
+    - bin/test-integration storage
+    - bin/test-integration util
+    - bin/test-cli-e2e
+    - bin/test-helm-e2e
+    - bin/test-helm-e2e-storage
+    - bin/coverage
